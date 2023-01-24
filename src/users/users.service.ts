@@ -7,6 +7,7 @@ import * as bcrypt from "bcrypt";
 import { UpdateUserDto } from './dto/update-user.dto';
 import { DeleteUserDto } from './dto/delete-user.dto';
 import { TypeOrmQueryService } from '@nestjs-query/query-typeorm';
+import { RestoreUserDto } from './dto/restore-user.dto';
 
 @Injectable()
 export class UsersService extends TypeOrmQueryService<User> {
@@ -18,16 +19,15 @@ export class UsersService extends TypeOrmQueryService<User> {
 
     //CREATE NEW USER
     async createUser(dto: CreateUserDto): Promise<User> {
-
         try {
-            const user = await this.userRepo.create({
+            const user: User = await this.userRepo.create({
                 email: dto.email,
                 password: await bcrypt.hash(dto.password, 10)
             });
             return await this.userRepo.save(user);
         } catch (err) {
             console.log(err);
-            throw new HttpException("Something bad happened", HttpStatus.BAD_REQUEST);
+            throw new HttpException(err.message, HttpStatus.BAD_REQUEST);
         }
 
     }
@@ -38,7 +38,7 @@ export class UsersService extends TypeOrmQueryService<User> {
             return await this.userRepo.find();
         } catch (err) {
             console.log(err);
-            throw new HttpException("Something bad happened", HttpStatus.BAD_REQUEST);
+            throw new HttpException(err.message, HttpStatus.BAD_REQUEST);
         }
     }
 
@@ -46,12 +46,12 @@ export class UsersService extends TypeOrmQueryService<User> {
     async findeOne(email: string): Promise<User> {
 
         try {
-            const candidate = await this.userRepo.findOne({ where: { email } });
+            const candidate: User = await this.userRepo.findOne({ where: { email } });
             if (!candidate) throw new HttpException("USER NOT FOUND!", HttpStatus.NOT_FOUND);
             return candidate;
         } catch (err) {
             console.log(err);
-            throw new HttpException("USER NOT FOUND!", HttpStatus.NOT_FOUND);
+            throw new HttpException(err.message, HttpStatus.NOT_FOUND);
 
         }
     }
@@ -59,7 +59,7 @@ export class UsersService extends TypeOrmQueryService<User> {
     //UPDATE USER BY EMAIL AND PASSWORD
     async updateUser(dto: UpdateUserDto): Promise<UpdateResult> {
         try {
-            const candidate = await this.userRepo.findOne({ where: { email: dto.email } });
+            const candidate: User = await this.userRepo.findOne({ where: { email: dto.email } });
             if (!candidate) throw new HttpException("USER NOT FOUND!", HttpStatus.NOT_FOUND);
             if (!(await bcrypt.compare(dto.password, candidate.password))) throw new HttpException("INVALID PASSWORD", HttpStatus.NOT_FOUND);
             return await this.userRepo.update(candidate.id, {
@@ -69,7 +69,7 @@ export class UsersService extends TypeOrmQueryService<User> {
             })
         } catch (err) {
             console.log(err);
-            throw new HttpException("Something bad happened", HttpStatus.BAD_REQUEST);
+            throw new HttpException(err.message, HttpStatus.BAD_REQUEST);
 
         }
     }
@@ -78,13 +78,63 @@ export class UsersService extends TypeOrmQueryService<User> {
     async deleteUser(dto: DeleteUserDto): Promise<UpdateResult> {
         try {
 
-            const candidate = await this.userRepo.findOne({ where: { email: dto.email } });
+            const candidate: User = await this.userRepo.findOne({ where: { email: dto.email } });
             if (!candidate) throw new HttpException("USER NOT FOUND!", HttpStatus.NOT_FOUND);
             if (!(await bcrypt.compare(dto.password, candidate.password))) throw new HttpException("INVALID PASSWORD", HttpStatus.NOT_FOUND);
             return await this.userRepo.softDelete(candidate.id)
         } catch (err) {
             console.log(err);
-            throw new HttpException("Something bad happened", HttpStatus.BAD_REQUEST);
+            throw new HttpException(err.message, HttpStatus.BAD_REQUEST);
         }
+    }
+
+    //GET ALL DELETED USERS
+    async getDeletedUsers(): Promise<User[]> {
+        try {
+            const deletedUsers: User[] = await this.userRepo.createQueryBuilder("user")
+                .withDeleted()
+                .where(`user.deletedAt IS NOT NULL`)
+                .getMany();
+            return deletedUsers;
+        } catch (err) {
+            console.log(err);
+            throw new HttpException(err.message, HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    //RESTORE DELETED USER
+    async restoreUser(dto: RestoreUserDto) {
+        try {
+            const restoredUser: User = await this.getDeletedUser(dto);
+            if (!restoredUser) throw new Error("user Not Found...");
+            await this.userRepo.restore(restoredUser.id);
+            return restoredUser;
+        } catch (err) {
+            console.log(err);
+            throw new HttpException(err.message, HttpStatus.BAD_REQUEST);
+        }
+
+    }
+
+    //GET DELETED USER
+    async getDeletedUser(dto: RestoreUserDto): Promise<User> {
+        try {
+            const deletedUsers: User[] = await this.userRepo.createQueryBuilder("user")
+                .withDeleted()
+                .where(`user.deletedAt IS NOT NULL`)
+                .getMany();
+            if (!deletedUsers) throw new HttpException("Users Not Found...", HttpStatus.NOT_FOUND);
+            const deletedUser = deletedUsers.filter((user) => {
+                if (user.email === dto.email) {
+                    return user;
+                }
+            })
+            if (!(await bcrypt.compare(dto.password, deletedUser[0].password))) throw new HttpException("INVALID PASSWORD", HttpStatus.NOT_FOUND);
+            return deletedUser[0];
+        } catch (err) {
+            console.log(err);
+            throw new HttpException(err.message, HttpStatus.BAD_REQUEST);
+        }
+
     }
 }
