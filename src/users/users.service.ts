@@ -2,17 +2,20 @@ import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, UpdateResult } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
-import { User } from './user-entity';
+import { User } from './users.entity';
 import * as bcrypt from "bcrypt";
 import { UpdateUserDto } from './dto/update-user.dto';
 import { DeleteUserDto } from './dto/delete-user.dto';
 import { TypeOrmQueryService } from '@nestjs-query/query-typeorm';
 import { RestoreUserDto } from './dto/restore-user.dto';
+import { RolesService } from 'src/roles/roles.service';
 
 @Injectable()
 export class UsersService extends TypeOrmQueryService<User> {
     constructor(
-        @InjectRepository(User) private readonly userRepo: Repository<User>
+        @InjectRepository(User)
+        private readonly userRepo: Repository<User>,
+        private readonly roleSerivce: RolesService
     ) {
         super(userRepo, { useSoftDelete: true })
     }
@@ -24,7 +27,10 @@ export class UsersService extends TypeOrmQueryService<User> {
                 email: dto.email,
                 password: await bcrypt.hash(dto.password, 10)
             });
-            return await this.userRepo.save(user);
+            const role = await this.roleSerivce.getRoleByValue("USER");
+            user.roles = [role];
+            await this.userRepo.save(user);
+            return user;
         } catch (err) {
             console.log(err);
             throw new HttpException(err.message, HttpStatus.BAD_REQUEST);
@@ -35,7 +41,7 @@ export class UsersService extends TypeOrmQueryService<User> {
     //FIND ALL USERS 
     async findAllUsers() {
         try {
-            return await this.userRepo.find();
+            return await this.userRepo.find({ relations: { roles: true } });
         } catch (err) {
             console.log(err);
             throw new HttpException(err.message, HttpStatus.BAD_REQUEST);
@@ -59,7 +65,7 @@ export class UsersService extends TypeOrmQueryService<User> {
     //UPDATE USER BY EMAIL AND PASSWORD
     async updateUser(dto: UpdateUserDto): Promise<UpdateResult> {
         try {
-            const candidate: User = await this.userRepo.findOne({ where: { email: dto.email } });
+            const candidate: User = await this.userRepo.findOne({ where: { email: dto.email }, relations: ["roles"] });
             if (!candidate) throw new HttpException("USER NOT FOUND!", HttpStatus.NOT_FOUND);
             if (!(await bcrypt.compare(dto.password, candidate.password))) throw new HttpException("INVALID PASSWORD", HttpStatus.NOT_FOUND);
             return await this.userRepo.update(candidate.id, {
@@ -75,13 +81,12 @@ export class UsersService extends TypeOrmQueryService<User> {
     }
 
     //DELETE USER BY EMAIL AND PASSWORD
-    async deleteUser(dto: DeleteUserDto): Promise<UpdateResult> {
+    async deleteUser(dto: DeleteUserDto): Promise<User> {
         try {
-
-            const candidate: User = await this.userRepo.findOne({ where: { email: dto.email } });
+            const candidate: User = await this.userRepo.findOne({ where: { email: dto.email }, relations: ["roles"] });
             if (!candidate) throw new HttpException("USER NOT FOUND!", HttpStatus.NOT_FOUND);
             if (!(await bcrypt.compare(dto.password, candidate.password))) throw new HttpException("INVALID PASSWORD", HttpStatus.NOT_FOUND);
-            return await this.userRepo.softDelete(candidate.id)
+            return await this.userRepo.softRemove(candidate);
         } catch (err) {
             console.log(err);
             throw new HttpException(err.message, HttpStatus.BAD_REQUEST);

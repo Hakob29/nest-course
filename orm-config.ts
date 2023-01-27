@@ -10,7 +10,7 @@ export const OrmConfig = new DataSource({
     username: process.env.TYPEORM_USERNAME,
     password: process.env.TYPEORM_PASSWORD,
     database: process.env.TYPEORM_DATABASE,
-    entities: ["dist/**/*-entity.js"],
+    entities: ["dist/**/*.entity.js"],
     logging: true,
     synchronize: false,
     migrationsRun: false,

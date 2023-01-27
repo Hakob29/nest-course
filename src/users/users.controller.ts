@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, HttpException, Param, Post, Put } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
-import { User } from './user-entity';
+import { User } from './users.entity';
 import { UsersService } from './users.service';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -61,7 +61,7 @@ export class UsersController {
     @Delete("/delete")
     async deleteUser(
         @Body() dto: DeleteUserDto
-    ): Promise<UpdateResult> {
+    ): Promise<User> {
         return await this.usersSerivce.deleteUser(dto);
     }
 
