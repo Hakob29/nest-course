@@ -4,12 +4,14 @@ import { AppModule } from './app.module';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 
 
+
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const configService = app.get(ConfigService);
   const PORT = configService.get("PORT");
   const HOST = configService.get("HOST");
   const config = new DocumentBuilder()
+    .addBearerAuth()
     .setTitle('Nest Course')
     .setDescription('Nest Course API description')
     .setVersion('1.0')

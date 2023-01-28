@@ -4,6 +4,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { OrmConfig } from 'orm-config';
 import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
+import { AuthModule } from './auth/auth.module';
+import { JwtAuthGuard } from './auth/jwt-auth.guard';
+
 
 
 @Module({
@@ -11,7 +14,8 @@ import { RolesModule } from './roles/roles.module';
     ConfigModule.forRoot({ isGlobal: true }),
     TypeOrmModule.forRoot(OrmConfig.options),
     UsersModule,
-    RolesModule
+    RolesModule,
+    AuthModule
   ],
   controllers: [],
   providers: [],

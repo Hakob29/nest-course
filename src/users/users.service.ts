@@ -52,7 +52,7 @@ export class UsersService extends TypeOrmQueryService<User> {
     async findeOne(email: string): Promise<User> {
 
         try {
-            const candidate: User = await this.userRepo.findOne({ where: { email } });
+            const candidate: User = await this.userRepo.findOne({ where: { email }, relations: { roles: true } });
             if (!candidate) throw new HttpException("USER NOT FOUND!", HttpStatus.NOT_FOUND);
             return candidate;
         } catch (err) {

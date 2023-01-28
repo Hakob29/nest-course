@@ -1,14 +1,16 @@
-import { Body, Controller, Delete, Get, HttpException, Param, Post, Put } from '@nestjs/common';
-import { CreateUserDto } from './dto/create-user.dto';
+import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { User } from './users.entity';
 import { UsersService } from './users.service';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateResult } from 'typeorm';
 import { DeleteUserDto } from './dto/delete-user.dto';
 import { RestoreUserDto } from './dto/restore-user.dto';
+import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 
 
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 @Controller('user')
 @ApiTags('User CRUD')
 export class UsersController {
@@ -16,16 +18,6 @@ export class UsersController {
     constructor(
         private readonly usersSerivce: UsersService
     ) { }
-
-    //CREATE NEW USER
-    @ApiOperation({ summary: "Create User..." })
-    @ApiResponse({ status: 200, type: User })
-    @Post("/create")
-    async createUser(
-        @Body() dto: CreateUserDto
-    ): Promise<User> {
-        return await this.usersSerivce.createUser(dto);
-    }
 
     //FIND ALL USERS 
     @ApiOperation({ summary: "Get All Users..." })
