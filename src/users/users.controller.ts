@@ -7,9 +7,14 @@ import { UpdateResult } from 'typeorm';
 import { DeleteUserDto } from './dto/delete-user.dto';
 import { RestoreUserDto } from './dto/restore-user.dto';
 import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
+import { Roles } from 'src/auth/auth-roles.decorator';
+import { RolesGuard } from 'src/auth/roles.guard';
+import { AddUserRoleDto } from './dto/add-user-role.dto';
+import { BanUserDto } from './dto/ban-user.dto';
 
 
-@UseGuards(JwtAuthGuard)
+@Roles("ADMIN")
+@UseGuards(RolesGuard)
 @ApiBearerAuth()
 @Controller('user')
 @ApiTags('User CRUD')
@@ -72,8 +77,31 @@ export class UsersController {
     @Post("/restore")
     async restoreUser(
         @Body() dto: RestoreUserDto
-    ) {
+    ): Promise<User> {
         return await this.usersSerivce.restoreUser(dto);
     }
+
+
+    //ADD ROLE TO USER 
+    @ApiOperation({ summary: "Add Role To User..." })
+    @ApiResponse({ status: 200, type: User })
+    @Post("/add/role")
+    async addUserRole(
+        @Body() dto: AddUserRoleDto
+    ): Promise<User[]> {
+        return await this.usersSerivce.addUserRole(dto);
+    }
+
+
+    //BANNED USER 
+    @ApiOperation({ summary: "Ban User for something..." })
+    @ApiResponse({ status: 200, type: User })
+    @Post("ban")
+    async ban(
+        @Body() dto: BanUserDto): Promise<User[]> {
+        return await this.usersSerivce.ban(dto);
+    }
+
+
 
 }

@@ -12,6 +12,7 @@ export class AuthService {
         private readonly jwtService: JwtService
     ) { }
 
+    //REGISTER
     async register(dto: CreateUserDto) {
         try {
             return this.userService.createUser(dto);
@@ -22,6 +23,7 @@ export class AuthService {
         }
     }
 
+    //LOGIN
     async login(dto: CreateUserDto) {
         try {
             const user = await this.userService.findeOne(dto.email);
@@ -34,6 +36,8 @@ export class AuthService {
 
     }
 
+
+    //GENERATE JWT TOKEN FOR USER
     async generateToken(user: User) {
         const payload = {
             email: user.email,

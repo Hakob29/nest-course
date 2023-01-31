@@ -9,6 +9,9 @@ import { DeleteUserDto } from './dto/delete-user.dto';
 import { TypeOrmQueryService } from '@nestjs-query/query-typeorm';
 import { RestoreUserDto } from './dto/restore-user.dto';
 import { RolesService } from 'src/roles/roles.service';
+import { AddUserRoleDto } from './dto/add-user-role.dto';
+import { Roles } from 'src/roles/roles.entity';
+import { BanUserDto } from './dto/ban-user.dto';
 
 @Injectable()
 export class UsersService extends TypeOrmQueryService<User> {
@@ -27,7 +30,7 @@ export class UsersService extends TypeOrmQueryService<User> {
                 email: dto.email,
                 password: await bcrypt.hash(dto.password, 10)
             });
-            const role = await this.roleSerivce.getRoleByValue("USER");
+            const role = await this.roleSerivce.getRoleByValue("ADMIN");
             user.roles = [role];
             await this.userRepo.save(user);
             return user;
@@ -129,7 +132,7 @@ export class UsersService extends TypeOrmQueryService<User> {
                 .where(`user.deletedAt IS NOT NULL`)
                 .getMany();
             if (!deletedUsers) throw new HttpException("Users Not Found...", HttpStatus.NOT_FOUND);
-            const deletedUser = deletedUsers.filter((user) => {
+            const deletedUser: User[] = deletedUsers.filter((user) => {
                 if (user.email === dto.email) {
                     return user;
                 }
@@ -140,6 +143,32 @@ export class UsersService extends TypeOrmQueryService<User> {
             console.log(err);
             throw new HttpException(err.message, HttpStatus.BAD_REQUEST);
         }
+    }
 
+    //ADD ROLE TO USER 
+    async addUserRole(dto: AddUserRoleDto): Promise<User[]> {
+        try {
+            const user: User[] = await this.userRepo.find({ where: { email: dto.email }, relations: ["roles"] });
+            const role: Roles = await this.roleSerivce.getRoleByValue(dto.role);
+            if (!user[0] && !role) throw new HttpException("USER NOT FOUND", HttpStatus.NOT_FOUND);
+            user[0].roles.push(role);
+            await this.userRepo.save(user);
+            return user;
+        } catch (err) {
+            console.log(err);
+            throw new HttpException(err.message, HttpStatus.BAD_REQUEST);
+        }
+    }
+
+    //BANNED USER 
+    async ban(dto: BanUserDto): Promise<User[]> {
+        const user: User[] = await this.userRepo.find({ where: { email: dto.email }, relations: ["roles"] });
+        if (!user[0]) throw new HttpException("USER NOT FOUND", HttpStatus.NOT_FOUND);
+        user[0].banned = true;
+        user[0].baReason = dto.banReason
+
+        await this.userRepo.save(user);
+
+        return user;
     }
 }
