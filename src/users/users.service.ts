@@ -30,7 +30,7 @@ export class UsersService extends TypeOrmQueryService<User> {
                 email: dto.email,
                 password: await bcrypt.hash(dto.password, 10)
             });
-            const role = await this.roleSerivce.getRoleByValue("ADMIN");
+            const role = await this.roleSerivce.getRoleByValue("USER");
             user.roles = [role];
             await this.userRepo.save(user);
             return user;
