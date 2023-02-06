@@ -1,12 +1,17 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, Put, UseGuards } from '@nestjs/common';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { RolesService } from './roles.service';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { Roles } from './roles.entity';
 import { UpdateRoleDto } from './dto/update-role.dto';
-import { DeleteResult, UpdateResult } from 'typeorm';
+import { DeleteResult } from 'typeorm';
+import { Roles as ROLES } from 'src/auth/auth-roles.decorator';
+import { RolesGuard } from 'src/auth/roles.guard';
+import { Roles } from './roles.entity';
 
 
+
+@ROLES("ADMIN")
+@UseGuards(RolesGuard)
 @ApiTags("Roles")
 @Controller('roles')
 export class RolesController {

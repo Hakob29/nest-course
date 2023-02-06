@@ -30,7 +30,7 @@ export class UsersService extends TypeOrmQueryService<User> {
                 email: dto.email,
                 password: await bcrypt.hash(dto.password, 10)
             });
-            const role = await this.roleSerivce.getRoleByValue("USER");
+            const role = await this.roleSerivce.getRoleByValue("ADMIN");
             user.roles = [role];
             await this.userRepo.save(user);
             return user;
@@ -44,7 +44,7 @@ export class UsersService extends TypeOrmQueryService<User> {
     //FIND ALL USERS 
     async findAllUsers() {
         try {
-            return await this.userRepo.find({ relations: { roles: true } });
+            return await this.userRepo.find({ relations: { roles: true, posts: true } });
         } catch (err) {
             console.log(err);
             throw new HttpException(err.message, HttpStatus.BAD_REQUEST);
@@ -56,6 +56,20 @@ export class UsersService extends TypeOrmQueryService<User> {
 
         try {
             const candidate: User = await this.userRepo.findOne({ where: { email }, relations: { roles: true } });
+            if (!candidate) throw new HttpException("USER NOT FOUND!", HttpStatus.NOT_FOUND);
+            return candidate;
+        } catch (err) {
+            console.log(err);
+            throw new HttpException(err.message, HttpStatus.NOT_FOUND);
+
+        }
+    }
+
+    //Find User By Id
+    async findById(id: number): Promise<User> {
+
+        try {
+            const candidate: User = await this.userRepo.findOne({ where: { id: id }, relations: { posts: true } });
             if (!candidate) throw new HttpException("USER NOT FOUND!", HttpStatus.NOT_FOUND);
             return candidate;
         } catch (err) {

@@ -5,6 +5,8 @@ import { OrmConfig } from 'orm-config';
 import { UsersModule } from './users/users.module';
 import { RolesModule } from './roles/roles.module';
 import { AuthModule } from './auth/auth.module';
+import { PostsModule } from './posts/posts.module';
+import { FilesModule } from './files/files.module';
 
 
 
@@ -14,7 +16,9 @@ import { AuthModule } from './auth/auth.module';
     TypeOrmModule.forRoot(OrmConfig.options),
     UsersModule,
     RolesModule,
-    AuthModule
+    AuthModule,
+    PostsModule,
+    FilesModule
   ],
   controllers: [],
   providers: [],

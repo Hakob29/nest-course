@@ -6,7 +6,6 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateResult } from 'typeorm';
 import { DeleteUserDto } from './dto/delete-user.dto';
 import { RestoreUserDto } from './dto/restore-user.dto';
-import { JwtAuthGuard } from 'src/auth/jwt-auth.guard';
 import { Roles } from 'src/auth/auth-roles.decorator';
 import { RolesGuard } from 'src/auth/roles.guard';
 import { AddUserRoleDto } from './dto/add-user-role.dto';

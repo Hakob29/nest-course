@@ -1,6 +1,7 @@
-import { Column, CreateDateColumn, DeleteDateColumn, Entity, JoinTable, ManyToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, DeleteDateColumn, Entity, JoinTable, ManyToMany, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { ApiProperty } from '@nestjs/swagger';
 import { Roles } from "src/roles/roles.entity";
+import { Posts } from "src/posts/posts.entity";
 
 
 @Entity("User")
@@ -30,6 +31,12 @@ export class User {
     @ManyToMany(() => Roles, (role) => role.users)
     @JoinTable({ name: "User-Roles-Table" })
     roles: Roles[];
+
+    @OneToMany(() => Posts, (post) => post.author, {
+        onDelete: "CASCADE",
+        onUpdate: "CASCADE"
+    })
+    posts: Posts[]
 
     @ApiProperty({ example: "23/01/23", description: "Created Date..." })
     @CreateDateColumn({ type: Date })
