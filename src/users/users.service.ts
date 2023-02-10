@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { forwardRef, HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, UpdateResult } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -12,13 +12,16 @@ import { RolesService } from 'src/roles/roles.service';
 import { AddUserRoleDto } from './dto/add-user-role.dto';
 import { Roles } from 'src/roles/roles.entity';
 import { BanUserDto } from './dto/ban-user.dto';
+import { PostsService } from 'src/posts/posts.service';
+
 
 @Injectable()
 export class UsersService extends TypeOrmQueryService<User> {
     constructor(
         @InjectRepository(User)
         private readonly userRepo: Repository<User>,
-        private readonly roleSerivce: RolesService
+        private readonly rolesService: RolesService,
+        // private readonly postsService: PostsService
     ) {
         super(userRepo, { useSoftDelete: true })
     }
@@ -30,7 +33,7 @@ export class UsersService extends TypeOrmQueryService<User> {
                 email: dto.email,
                 password: await bcrypt.hash(dto.password, 10)
             });
-            const role = await this.roleSerivce.getRoleByValue("ADMIN");
+            const role = await this.rolesService.getRoleByValue("ADMIN");
             user.roles = [role];
             await this.userRepo.save(user);
             return user;
@@ -163,7 +166,7 @@ export class UsersService extends TypeOrmQueryService<User> {
     async addUserRole(dto: AddUserRoleDto): Promise<User[]> {
         try {
             const user: User[] = await this.userRepo.find({ where: { email: dto.email }, relations: ["roles"] });
-            const role: Roles = await this.roleSerivce.getRoleByValue(dto.role);
+            const role: Roles = await this.rolesService.getRoleByValue(dto.role);
             if (!user[0] && !role) throw new HttpException("USER NOT FOUND", HttpStatus.NOT_FOUND);
             user[0].roles.push(role);
             await this.userRepo.save(user);
