@@ -86,10 +86,10 @@ export class PostsController {
     //RESTORE DELETED POST
     @ApiOperation({ summary: "Restore Deleted Posts..." })
     @ApiResponse({ status: 200, type: Posts })
-    @Post("/restore/:title")
+    @Post("/restore/:id")
     async restoreUser(
-        @Param("title") title: string
-    ): Promise<Posts> {
-        return await this.postsService.restorePost(title);
+        @Param("id") id: number
+    ): Promise<Posts[]> {
+        return await this.postsService.restorePost(id);
     }
 }

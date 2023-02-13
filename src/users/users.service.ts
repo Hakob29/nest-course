@@ -13,6 +13,7 @@ import { AddUserRoleDto } from './dto/add-user-role.dto';
 import { Roles } from 'src/roles/roles.entity';
 import { BanUserDto } from './dto/ban-user.dto';
 import { PostsService } from 'src/posts/posts.service';
+import { connected } from 'process';
 
 
 @Injectable()
@@ -21,7 +22,8 @@ export class UsersService extends TypeOrmQueryService<User> {
         @InjectRepository(User)
         private readonly userRepo: Repository<User>,
         private readonly rolesService: RolesService,
-        // private readonly postsService: PostsService
+        @Inject(forwardRef(() => PostsService))
+        private readonly postsService: PostsService
     ) {
         super(userRepo, { useSoftDelete: true })
     }
@@ -101,9 +103,10 @@ export class UsersService extends TypeOrmQueryService<User> {
     }
 
     //DELETE USER BY EMAIL AND PASSWORD
-    async deleteUser(dto: DeleteUserDto): Promise<User> {
+    async deleteUser(dto: DeleteUserDto) {
         try {
-            const candidate: User = await this.userRepo.findOne({ where: { email: dto.email }, relations: ["roles"] });
+            const candidate: User = await this.userRepo.findOne({ where: { email: dto.email }, relations: ["roles", "posts"] });
+            candidate.posts.forEach(async (post) => await this.postsService.deletePost(post.title));
             if (!candidate) throw new HttpException("USER NOT FOUND!", HttpStatus.NOT_FOUND);
             if (!(await bcrypt.compare(dto.password, candidate.password))) throw new HttpException("INVALID PASSWORD", HttpStatus.NOT_FOUND);
             return await this.userRepo.softRemove(candidate);
@@ -133,6 +136,7 @@ export class UsersService extends TypeOrmQueryService<User> {
             const restoredUser: User = await this.getDeletedUser(dto);
             if (!restoredUser) throw new Error("user Not Found...");
             await this.userRepo.restore(restoredUser.id);
+            await this.postsService.restorePost(restoredUser.id)
             return restoredUser;
         } catch (err) {
             console.log(err);
@@ -144,9 +148,9 @@ export class UsersService extends TypeOrmQueryService<User> {
     //GET DELETED USER
     async getDeletedUser(dto: RestoreUserDto): Promise<User> {
         try {
-            const deletedUsers: User[] = await this.userRepo.createQueryBuilder("user")
+            const deletedUsers: User[] = await this.userRepo.createQueryBuilder("users")
                 .withDeleted()
-                .where(`user.deletedAt IS NOT NULL`)
+                .where(`users.deletedAt IS NOT NULL`)
                 .getMany();
             if (!deletedUsers) throw new HttpException("Users Not Found...", HttpStatus.NOT_FOUND);
             const deletedUser: User[] = deletedUsers.filter((user) => {

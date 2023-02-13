@@ -57,7 +57,7 @@ export class UsersController {
     @Delete("/delete")
     async deleteUser(
         @Body() dto: DeleteUserDto
-    ): Promise<User> {
+    ) {
         return await this.usersSerivce.deleteUser(dto);
     }
 

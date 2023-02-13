@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { forwardRef, HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { FilesService } from 'src/files/files.service';
 import { DeleteResult, Repository, UpdateResult } from 'typeorm';
@@ -14,6 +14,7 @@ export class PostsService extends TypeOrmQueryService<Posts> {
         @InjectRepository(Posts)
         private readonly postRepo: Repository<Posts>,
         private readonly filesService: FilesService,
+        @Inject(forwardRef(() => UsersService))
         private readonly userService: UsersService
     ) {
         super(postRepo, { useSoftDelete: true })
@@ -95,11 +96,12 @@ export class PostsService extends TypeOrmQueryService<Posts> {
     }
 
     //RESTORE POST
-    async restorePost(title: string): Promise<Posts> {
+    async restorePost(id: number): Promise<Posts[]> {
         try {
-            const restoredPost: Posts = await this.getDeletedPost(title);
-            if (!restoredPost) throw new Error("Post Not Found...");
-            await this.postRepo.restore(restoredPost.id);
+            const restoredPost: Posts[] = await this.getDeletedPost(id);
+            restoredPost.forEach(async (post) => {
+                await this.postRepo.restore(post.id);
+            })
             return restoredPost;
         } catch (err) {
             console.log(err);
@@ -108,21 +110,15 @@ export class PostsService extends TypeOrmQueryService<Posts> {
     }
 
 
-    //GET DELETED USER
-    async getDeletedPost(title: string): Promise<Posts> {
+    //GET DELETED POST
+    async getDeletedPost(id: number): Promise<Posts[]> {
         try {
-            const deletedPosts: Posts[] = await this.postRepo.createQueryBuilder("posts")
+            const deletedPosts: Posts[] = await this.postRepo
+                .createQueryBuilder("posts")
                 .withDeleted()
-                .where(`posts.deletedAt IS NOT NULL`)
-                .getMany();
-            if (!deletedPosts) throw new HttpException("Post Not Foundddd...", HttpStatus.NOT_FOUND);
-            const deletedPost: Posts[] = deletedPosts.filter((post) => {
-                console.log(title)
-                if (post.title === title) {
-                    return post;
-                }
-            })
-            return deletedPost[0];
+                .where(`posts.authorId = ${id}`)
+                .getMany()
+            return deletedPosts
         } catch (err) {
             console.log(err);
             throw new HttpException(err.message, HttpStatus.BAD_REQUEST);
