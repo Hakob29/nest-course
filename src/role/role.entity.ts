@@ -1,11 +1,11 @@
-import { Column, CreateDateColumn, DeleteDateColumn, Entity, ManyToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, ManyToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { ApiProperty } from '@nestjs/swagger';
-import { User } from "src/users/users.entity";
+import { User } from "src/user/user.entity";
 
 
 
-@Entity("Roles")
-export class Roles {
+@Entity("Role")
+export class Role {
 
     @ApiProperty({ example: "ID", description: "Primary Key" })
     @PrimaryGeneratedColumn({ type: "bigint" })
@@ -21,7 +21,7 @@ export class Roles {
     description: string
 
 
-    @ManyToMany(() => User, (user) => user.roles)
+    @ManyToMany(() => User, (user) => user.role)
     users: User[]
 
 

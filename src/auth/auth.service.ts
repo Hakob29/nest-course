@@ -1,14 +1,14 @@
 import { HttpException, HttpStatus, Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { CreateUserDto } from 'src/users/dto/create-user.dto';
-import { User } from 'src/users/users.entity';
-import { UsersService } from 'src/users/users.service';
+import { CreateUserDto } from 'src/user/dto/create-user.dto';
+import { User } from 'src/user/user.entity';
+import { UserService } from 'src/user/user.service';
 import * as bcrypt from "bcrypt";
 
 @Injectable()
 export class AuthService {
     constructor(
-        private readonly userService: UsersService,
+        private readonly userService: UserService,
         private readonly jwtService: JwtService
     ) { }
 
@@ -24,7 +24,7 @@ export class AuthService {
     }
 
     //LOGIN
-    async login(dto: CreateUserDto) {
+    async login(dto: CreateUserDto): Promise<{ token: string }> {
         try {
             const user = await this.userService.findeOne(dto.email);
             if (!(await bcrypt.compare(dto.password, user.password))) throw new UnauthorizedException({ messgae: "Incorrect User" })
@@ -42,7 +42,7 @@ export class AuthService {
         const payload = {
             email: user.email,
             id: user.id,
-            roles: user.roles
+            roles: user.role
         }
         return {
             token: this.jwtService.sign(payload)

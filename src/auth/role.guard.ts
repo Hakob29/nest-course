@@ -2,10 +2,10 @@ import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from
 import { Reflector } from "@nestjs/core";
 import { JwtService } from "@nestjs/jwt";
 import { Observable } from "rxjs";
-import { ROLES_KEY } from "./auth-roles.decorator";
+import { ROLE_KEY } from "./auth-roles.decorator";
 
 @Injectable()
-export class RolesGuard implements CanActivate {
+export class RoleGuard implements CanActivate {
 
     constructor(
         private readonly jwtService: JwtService,
@@ -15,7 +15,7 @@ export class RolesGuard implements CanActivate {
 
 
         try {
-            const requiredRoles: string[] = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
+            const requiredRoles: string[] = this.reflector.getAllAndOverride<string[]>(ROLE_KEY, [
                 context.getHandler(),
                 context.getClass()
             ])

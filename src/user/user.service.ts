@@ -2,28 +2,27 @@ import { forwardRef, HttpException, HttpStatus, Inject, Injectable } from '@nest
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, UpdateResult } from 'typeorm';
 import { CreateUserDto } from './dto/create-user.dto';
-import { User } from './users.entity';
+import { User } from './user.entity';
 import * as bcrypt from "bcrypt";
 import { UpdateUserDto } from './dto/update-user.dto';
 import { DeleteUserDto } from './dto/delete-user.dto';
 import { TypeOrmQueryService } from '@nestjs-query/query-typeorm';
 import { RestoreUserDto } from './dto/restore-user.dto';
-import { RolesService } from 'src/roles/roles.service';
+import { RoleService } from 'src/role/role.service';
 import { AddUserRoleDto } from './dto/add-user-role.dto';
-import { Roles } from 'src/roles/roles.entity';
+import { Role } from 'src/role/role.entity';
 import { BanUserDto } from './dto/ban-user.dto';
-import { PostsService } from 'src/posts/posts.service';
-import { connected } from 'process';
+import { PostService } from 'src/post/post.service';
 
 
 @Injectable()
-export class UsersService extends TypeOrmQueryService<User> {
+export class UserService extends TypeOrmQueryService<User> {
     constructor(
         @InjectRepository(User)
         private readonly userRepo: Repository<User>,
-        private readonly rolesService: RolesService,
-        @Inject(forwardRef(() => PostsService))
-        private readonly postsService: PostsService
+        private readonly roleService: RoleService,
+        @Inject(forwardRef(() => PostService))
+        private readonly postService: PostService
     ) {
         super(userRepo, { useSoftDelete: true })
     }
@@ -35,8 +34,8 @@ export class UsersService extends TypeOrmQueryService<User> {
                 email: dto.email,
                 password: await bcrypt.hash(dto.password, 10)
             });
-            const role = await this.rolesService.getRoleByValue("ADMIN");
-            user.roles = [role];
+            const role = await this.roleService.getRoleByValue("ADMIN");
+            user.role = [role];
             await this.userRepo.save(user);
             return user;
         } catch (err) {
@@ -47,9 +46,9 @@ export class UsersService extends TypeOrmQueryService<User> {
     }
 
     //FIND ALL USERS 
-    async findAllUsers() {
+    async findAllUsers(): Promise<User[]> {
         try {
-            return await this.userRepo.find({ relations: { roles: true, posts: true } });
+            return await this.userRepo.find({ relations: ["role", "post"] });
         } catch (err) {
             console.log(err);
             throw new HttpException(err.message, HttpStatus.BAD_REQUEST);
@@ -60,7 +59,7 @@ export class UsersService extends TypeOrmQueryService<User> {
     async findeOne(email: string): Promise<User> {
 
         try {
-            const candidate: User = await this.userRepo.findOne({ where: { email }, relations: { roles: true } });
+            const candidate: User = await this.userRepo.findOne({ where: { email }, relations: ["role", "post"] });
             if (!candidate) throw new HttpException("USER NOT FOUND!", HttpStatus.NOT_FOUND);
             return candidate;
         } catch (err) {
@@ -74,7 +73,7 @@ export class UsersService extends TypeOrmQueryService<User> {
     async findById(id: number): Promise<User> {
 
         try {
-            const candidate: User = await this.userRepo.findOne({ where: { id: id }, relations: { posts: true } });
+            const candidate: User = await this.userRepo.findOne({ where: { id: id }, relations: ["post", "role"] });
             if (!candidate) throw new HttpException("USER NOT FOUND!", HttpStatus.NOT_FOUND);
             return candidate;
         } catch (err) {
@@ -87,7 +86,7 @@ export class UsersService extends TypeOrmQueryService<User> {
     //UPDATE USER BY EMAIL AND PASSWORD
     async updateUser(dto: UpdateUserDto): Promise<UpdateResult> {
         try {
-            const candidate: User = await this.userRepo.findOne({ where: { email: dto.email }, relations: ["roles"] });
+            const candidate: User = await this.userRepo.findOne({ where: { email: dto.email }, relations: ["role"] });
             if (!candidate) throw new HttpException("USER NOT FOUND!", HttpStatus.NOT_FOUND);
             if (!(await bcrypt.compare(dto.password, candidate.password))) throw new HttpException("INVALID PASSWORD", HttpStatus.NOT_FOUND);
             return await this.userRepo.update(candidate.id, {
@@ -103,10 +102,10 @@ export class UsersService extends TypeOrmQueryService<User> {
     }
 
     //DELETE USER BY EMAIL AND PASSWORD
-    async deleteUser(dto: DeleteUserDto) {
+    async deleteUser(dto: DeleteUserDto): Promise<User> {
         try {
-            const candidate: User = await this.userRepo.findOne({ where: { email: dto.email }, relations: ["roles", "posts"] });
-            candidate.posts.forEach(async (post) => await this.postsService.deletePost(post.title));
+            const candidate: User = await this.userRepo.findOne({ where: { email: dto.email }, relations: ["role", "post"] });
+            candidate.post.forEach(async (post) => await this.postService.deletePost(post.title));
             if (!candidate) throw new HttpException("USER NOT FOUND!", HttpStatus.NOT_FOUND);
             if (!(await bcrypt.compare(dto.password, candidate.password))) throw new HttpException("INVALID PASSWORD", HttpStatus.NOT_FOUND);
             return await this.userRepo.softRemove(candidate);
@@ -131,12 +130,12 @@ export class UsersService extends TypeOrmQueryService<User> {
     }
 
     //RESTORE DELETED USER
-    async restoreUser(dto: RestoreUserDto) {
+    async restoreUser(dto: RestoreUserDto): Promise<User> {
         try {
             const restoredUser: User = await this.getDeletedUser(dto);
             if (!restoredUser) throw new Error("user Not Found...");
             await this.userRepo.restore(restoredUser.id);
-            await this.postsService.restorePost(restoredUser.id)
+            await this.postService.restorePost(restoredUser.id)
             return restoredUser;
         } catch (err) {
             console.log(err);
@@ -148,9 +147,9 @@ export class UsersService extends TypeOrmQueryService<User> {
     //GET DELETED USER
     async getDeletedUser(dto: RestoreUserDto): Promise<User> {
         try {
-            const deletedUsers: User[] = await this.userRepo.createQueryBuilder("users")
+            const deletedUsers: User[] = await this.userRepo.createQueryBuilder("user")
                 .withDeleted()
-                .where(`users.deletedAt IS NOT NULL`)
+                .where(`user.deletedAt IS NOT NULL`)
                 .getMany();
             if (!deletedUsers) throw new HttpException("Users Not Found...", HttpStatus.NOT_FOUND);
             const deletedUser: User[] = deletedUsers.filter((user) => {
@@ -169,10 +168,10 @@ export class UsersService extends TypeOrmQueryService<User> {
     //ADD ROLE TO USER 
     async addUserRole(dto: AddUserRoleDto): Promise<User[]> {
         try {
-            const user: User[] = await this.userRepo.find({ where: { email: dto.email }, relations: ["roles"] });
-            const role: Roles = await this.rolesService.getRoleByValue(dto.role);
+            const user: User[] = await this.userRepo.find({ where: { email: dto.email }, relations: ["role"] });
+            const role: Role = await this.roleService.getRoleByValue(dto.role);
             if (!user[0] && !role) throw new HttpException("USER NOT FOUND", HttpStatus.NOT_FOUND);
-            user[0].roles.push(role);
+            user[0].role.push(role);
             await this.userRepo.save(user);
             return user;
         } catch (err) {
@@ -183,7 +182,7 @@ export class UsersService extends TypeOrmQueryService<User> {
 
     //BANNED USER 
     async ban(dto: BanUserDto): Promise<User[]> {
-        const user: User[] = await this.userRepo.find({ where: { email: dto.email }, relations: ["roles"] });
+        const user: User[] = await this.userRepo.find({ where: { email: dto.email }, relations: ["role"] });
         if (!user[0]) throw new HttpException("USER NOT FOUND", HttpStatus.NOT_FOUND);
         user[0].banned = true;
         user[0].baReason = dto.banReason

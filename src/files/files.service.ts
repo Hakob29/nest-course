@@ -25,7 +25,7 @@ export class FilesService {
 
 
     //DELETE AUDIO AND PICTURE FILES
-    async removeFile(fileName: string) {
+    async removeFile(fileName: string): Promise<void> {
         try {
             const filePath = path.resolve(__dirname, "..", "static/" + fileName);
             fs.stat(filePath, function (err, stats) {

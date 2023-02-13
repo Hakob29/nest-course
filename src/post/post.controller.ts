@@ -1,30 +1,29 @@
 import { Body, Controller, Delete, Get, Param, Post, Put, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { CreatePostDto } from './dto/create-post.dto';
-import { PostsService } from './posts.service';
+import { PostService } from './post.service';
 import { ApiTags, ApiOperation, ApiResponse, ApiConsumes, ApiBody } from '@nestjs/swagger';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { Posts } from './posts.entity';
-import { title } from 'process';
+import { Post as Posts } from './post.entity';
 import { UpdatePostDto } from './dto/update-post.dto';
-import { Roles } from 'src/auth/auth-roles.decorator';
-import { RolesGuard } from 'src/auth/roles.guard';
+import { Role } from 'src/auth/auth-roles.decorator';
+import { RoleGuard } from 'src/auth/role.guard';
 import { DeleteResult, UpdateResult } from 'typeorm';
 
 
-Roles('ADMIN')
-@UseGuards(RolesGuard)
-@ApiTags("Posts")
-@Controller('posts')
-export class PostsController {
+Role('ADMIN')
+@UseGuards(RoleGuard)
+@ApiTags("Post")
+@Controller('post')
+export class PostController {
 
     constructor(
-        private readonly postsService: PostsService
+        private readonly postService: PostService
     ) { }
 
 
     //CREATE POST
-    @ApiOperation({ summary: "Create Posts..." })
-    @ApiResponse({ status: 200, type: Post })
+    @ApiOperation({ summary: "Create Post..." })
+    @ApiResponse({ status: 200, type: Posts })
     @ApiBody({
         schema: CreatePostDto
     })
@@ -35,30 +34,30 @@ export class PostsController {
         @UploadedFile("file") file: Express.Multer.File,
         @Body() dto: any
     ): Promise<Posts> {
-        return await this.postsService.createPost(dto, file);
+        return await this.postService.createPost(dto, file);
     }
 
     //GET ALL POSTS
-    @ApiOperation({ summary: "Get All Posts..." })
-    @ApiResponse({ status: 200, type: Post })
+    @ApiOperation({ summary: "Get All Post..." })
+    @ApiResponse({ status: 200, type: Posts })
     @Get("/all")
     async getAllPosts(): Promise<Posts[]> {
-        return await this.postsService.getAllPosts();
+        return await this.postService.getAllPosts();
     }
 
     //GET POST BY TITILE
-    @ApiOperation({ summary: "Get Posts By Title..." })
-    @ApiResponse({ status: 200, type: Post })
+    @ApiOperation({ summary: "Get Post By Title..." })
+    @ApiResponse({ status: 200, type: Posts })
     @Get("/:title")
     async getPostByTitle(
         @Param("title") title: string
     ): Promise<Posts> {
-        return await this.postsService.getPostByTitle(title);
+        return await this.postService.getPostByTitle(title);
     }
 
     //UPDATE POST 
-    @ApiOperation({ summary: "Update Posts..." })
-    @ApiResponse({ status: 200, type: Post })
+    @ApiOperation({ summary: "Update Post..." })
+    @ApiResponse({ status: 200, type: Posts })
     @ApiBody({
         schema: UpdatePostDto
     })
@@ -69,27 +68,27 @@ export class PostsController {
         @UploadedFile("file") file: Express.Multer.File,
         @Body() dto: any
     ): Promise<UpdateResult> {
-        return await this.postsService.updatePost(dto, file);
+        return await this.postService.updatePost(dto, file);
     }
 
     //DELETE POST
-    @ApiOperation({ summary: "Delete Posts..." })
-    @ApiResponse({ status: 200, type: Post })
+    @ApiOperation({ summary: "Delete Post..." })
+    @ApiResponse({ status: 200, type: Posts })
     @Delete("/delete/:title")
     async deletePost(
         @Param("title") title: string
     ): Promise<DeleteResult> {
-        return await this.postsService.deletePost(title);
+        return await this.postService.deletePost(title);
     }
 
 
     //RESTORE DELETED POST
-    @ApiOperation({ summary: "Restore Deleted Posts..." })
+    @ApiOperation({ summary: "Restore Deleted Post..." })
     @ApiResponse({ status: 200, type: Posts })
     @Post("/restore/:id")
     async restoreUser(
         @Param("id") id: number
     ): Promise<Posts[]> {
-        return await this.postsService.restorePost(id);
+        return await this.postService.restorePost(id);
     }
 }

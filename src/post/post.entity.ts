@@ -1,10 +1,10 @@
-import { User } from "src/users/users.entity";
+import { User } from "src/user/user.entity";
 import { Column, CreateDateColumn, DeleteDateColumn, Entity, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { ApiProperty } from '@nestjs/swagger';
 
 
-@Entity("Posts")
-export class Posts {
+@Entity("Post")
+export class Post {
 
     @ApiProperty({ example: "ID", description: "Primary Key" })
     @PrimaryGeneratedColumn({ type: "bigint" })
@@ -22,7 +22,7 @@ export class Posts {
     @Column({ type: String })
     image: string
 
-    @ManyToOne(() => User, (user) => user.posts)
+    @ManyToOne(() => User, (user) => user.post)
     author: User
 
 

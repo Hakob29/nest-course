@@ -2,30 +2,30 @@ import { forwardRef, HttpException, HttpStatus, Inject, Injectable } from '@nest
 import { InjectRepository } from '@nestjs/typeorm';
 import { FilesService } from 'src/files/files.service';
 import { DeleteResult, Repository, UpdateResult } from 'typeorm';
-import { Posts } from './posts.entity';
-import { UsersService } from 'src/users/users.service';
-import { User } from 'src/users/users.entity';
+import { Post } from './post.entity';
+import { UserService } from 'src/user/user.service';
+import { User } from 'src/user/user.entity';
 import { TypeOrmQueryService } from '@nestjs-query/query-typeorm';
 
 
 @Injectable()
-export class PostsService extends TypeOrmQueryService<Posts> {
+export class PostService extends TypeOrmQueryService<Post> {
     constructor(
-        @InjectRepository(Posts)
-        private readonly postRepo: Repository<Posts>,
+        @InjectRepository(Post)
+        private readonly postRepo: Repository<Post>,
         private readonly filesService: FilesService,
-        @Inject(forwardRef(() => UsersService))
-        private readonly userService: UsersService
+        @Inject(forwardRef(() => UserService))
+        private readonly userService: UserService
     ) {
         super(postRepo, { useSoftDelete: true })
     }
 
     //CREATE POST 
-    async createPost(dto: any, file: Express.Multer.File): Promise<Posts> {
+    async createPost(dto: any, file: Express.Multer.File): Promise<Post> {
         try {
             const user: User = await this.userService.findById(dto.authorId);
             const fileName: string = await this.filesService.createFile(file);
-            const post: Posts = await this.postRepo.create({
+            const post: Post = await this.postRepo.create({
                 title: dto.title,
                 content: dto.content,
                 author: user,
@@ -40,9 +40,9 @@ export class PostsService extends TypeOrmQueryService<Posts> {
     }
 
     //GET ALL POSTS
-    async getAllPosts(): Promise<Posts[]> {
+    async getAllPosts(): Promise<Post[]> {
         try {
-            const posts: Posts[] = await this.postRepo.find();
+            const posts: Post[] = await this.postRepo.find();
             return posts;
         } catch (err) {
             console.log(err.message);
@@ -51,7 +51,7 @@ export class PostsService extends TypeOrmQueryService<Posts> {
     }
 
     //GET POST BY TITLE
-    async getPostByTitle(title: string): Promise<Posts> {
+    async getPostByTitle(title: string): Promise<Post> {
         try {
             const post = await this.postRepo.findOne({ where: { title } });
             if (!post) throw new HttpException("POST NOT FOUNDDD!!!", HttpStatus.NOT_FOUND);
@@ -67,7 +67,7 @@ export class PostsService extends TypeOrmQueryService<Posts> {
     async updatePost(dto: any, file: Express.Multer.File): Promise<UpdateResult> {
         try {
 
-            const post: Posts = await this.getPostByTitle(dto.title);
+            const post: Post = await this.getPostByTitle(dto.title);
             if (!post) throw new HttpException("POST NOT FOUND!", HttpStatus.NOT_FOUND);
             const image = await this.filesService.createFile(file);
             if (!image) throw new HttpException("FILE DONT CREATED!", HttpStatus.BAD_REQUEST);
@@ -96,9 +96,9 @@ export class PostsService extends TypeOrmQueryService<Posts> {
     }
 
     //RESTORE POST
-    async restorePost(id: number): Promise<Posts[]> {
+    async restorePost(id: number): Promise<Post[]> {
         try {
-            const restoredPost: Posts[] = await this.getDeletedPost(id);
+            const restoredPost: Post[] = await this.getDeletedPost(id);
             restoredPost.forEach(async (post) => {
                 await this.postRepo.restore(post.id);
             })
@@ -111,12 +111,12 @@ export class PostsService extends TypeOrmQueryService<Posts> {
 
 
     //GET DELETED POST
-    async getDeletedPost(id: number): Promise<Posts[]> {
+    async getDeletedPost(id: number): Promise<Post[]> {
         try {
-            const deletedPosts: Posts[] = await this.postRepo
-                .createQueryBuilder("posts")
+            const deletedPosts: Post[] = await this.postRepo
+                .createQueryBuilder("post")
                 .withDeleted()
-                .where(`posts.authorId = ${id}`)
+                .where(`post.authorId = ${id}`)
                 .getMany()
             return deletedPosts
         } catch (err) {
